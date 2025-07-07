@@ -80,11 +80,14 @@ def donate_blood(donor, blood_group, quantity, donation_date, blood_bank, notes=
     return save_donations(donations) and save_blood_inventory(inventory)
 
 def request_blood(requester, blood_group, quantity, urgency, required_date, reason, contact_info):
-    """Submit a blood request"""
+    """Submit a blood request and notify compatible donors"""
+    from request_management import generate_request_id, notify_compatible_donors
+    
     requests = load_requests()
     
-    # Create request record
+    # Create request record with unique ID
     request = {
+        'id': generate_request_id(),
         'requester': requester,
         'blood_group': blood_group,
         'quantity': quantity,
@@ -97,7 +100,28 @@ def request_blood(requester, blood_group, quantity, urgency, required_date, reas
     }
     
     requests.append(request)
-    return save_requests(requests)
+    
+    if save_requests(requests):
+        # Notify compatible donors about this request
+        try:
+            notifications_sent, total_compatible = notify_compatible_donors(request)
+            return {
+                'success': True,
+                'request_id': request['id'],
+                'notifications_sent': notifications_sent,
+                'total_compatible': total_compatible
+            }
+        except Exception as e:
+            # Even if notifications fail, the request was saved
+            return {
+                'success': True,
+                'request_id': request['id'],
+                'notifications_sent': 0,
+                'total_compatible': 0,
+                'error': str(e)
+            }
+    
+    return {'success': False, 'error': 'Failed to save request'}
 
 def get_blood_inventory():
     """Get current blood inventory"""

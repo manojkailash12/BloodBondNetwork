@@ -27,7 +27,8 @@ def init_data_dirs():
         "data/requests.json",
         "data/blood_banks.json",
         "data/otps.json",
-        "data/notifications.json"
+        "data/notifications.json",
+        "data/request_responses.json"
     ]
     
     for file_path in files:
@@ -46,8 +47,10 @@ def init_data_dirs():
                     "A+": 0, "A-": 0, "B+": 0, "B-": 0,
                     "AB+": 0, "AB-": 0, "O+": 0, "O-": 0
                 }
-            elif "otps.json" in file_path or "notifications.json" in file_path:
-                sample_data = {} if "otps.json" in file_path else []
+            elif "otps.json" in file_path:
+                sample_data = {}
+            elif "notifications.json" in file_path or "request_responses.json" in file_path:
+                sample_data = []
             else:
                 sample_data = []
             
@@ -138,9 +141,9 @@ def main():
         
         # Navigation menu
         if st.session_state.user_type == "donor":
-            menu_options = ["Dashboard", "Donate Blood", "Blood Bank Map", "My Donations", "My Notifications", "Change Password"]
+            menu_options = ["Dashboard", "Donate Blood", "Blood Requests", "Blood Bank Map", "My Donations", "My Notifications", "Change Password"]
         elif st.session_state.user_type == "receiver":
-            menu_options = ["Dashboard", "Request Blood", "Blood Bank Map", "My Requests", "My Notifications", "Change Password"]
+            menu_options = ["Dashboard", "Request Blood", "Blood Bank Map", "My Requests", "Request Responses", "My Notifications", "Change Password"]
         else:
             menu_options = ["Dashboard", "Blood Bank Map", "My Notifications", "Change Password"]
             
@@ -153,6 +156,10 @@ def main():
             donate_blood_page()
         elif selected_page == "Request Blood":
             request_blood_page()
+        elif selected_page == "Blood Requests":
+            show_blood_requests_for_donor()
+        elif selected_page == "Request Responses":
+            show_request_responses()
         elif selected_page == "Blood Bank Map":
             show_blood_bank_map()
         elif selected_page == "My Donations":
@@ -535,6 +542,167 @@ def show_my_notifications():
         - Important system updates
         """)
 
+def show_blood_requests_for_donor():
+    """Show blood requests that the donor can fulfill"""
+    st.header("🩸 Blood Requests You Can Help With")
+    
+    from request_management import get_pending_requests_for_donor, respond_to_request
+    
+    # Get compatible requests for this donor
+    compatible_requests = get_pending_requests_for_donor(st.session_state.username)
+    
+    if compatible_requests:
+        st.success(f"Found {len(compatible_requests)} blood requests you can help with!")
+        
+        for i, request in enumerate(compatible_requests):
+            with st.expander(f"Request #{request.get('id', i+1)} - {request['blood_group']} - {request['urgency']} Priority"):
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.markdown(f"**Blood Group:** {request['blood_group']}")
+                    st.markdown(f"**Quantity Needed:** {request['quantity']} ml")
+                    st.markdown(f"**Urgency:** {request['urgency']}")
+                    st.markdown(f"**Required By:** {request['required_date']}")
+                    st.markdown(f"**Reason:** {request['reason']}")
+                    st.markdown(f"**Requester:** {request['requester']}")
+                    
+                    request_date = datetime.fromisoformat(request['date'])
+                    st.markdown(f"**Request Date:** {request_date.strftime('%Y-%m-%d %H:%M')}")
+                
+                with col2:
+                    urgency_colors = {
+                        'Low': '🟢',
+                        'Medium': '🟡', 
+                        'High': '🟠',
+                        'Critical': '🔴'
+                    }
+                    urgency_icon = urgency_colors.get(request['urgency'], '⚪')
+                    st.markdown(f"## {urgency_icon}")
+                    st.markdown(f"**Priority:** {request['urgency']}")
+                
+                st.markdown("---")
+                
+                # Response form
+                with st.form(f"response_form_{request.get('id', i)}"):
+                    st.markdown("### Your Response:")
+                    
+                    response_type = st.radio("Your Decision:", ["accept", "decline"], key=f"response_{i}")
+                    
+                    if response_type == "accept":
+                        quantity_offered = st.number_input(
+                            "Quantity you can donate (ml):", 
+                            min_value=100, 
+                            max_value=request['quantity'], 
+                            value=min(350, request['quantity']),
+                            step=50,
+                            key=f"quantity_{i}"
+                        )
+                    else:
+                        quantity_offered = 0
+                    
+                    message = st.text_area("Message to requester (optional):", key=f"message_{i}")
+                    
+                    submitted = st.form_submit_button("Submit Response")
+                    
+                    if submitted:
+                        result = respond_to_request(
+                            request.get('id'), 
+                            st.session_state.username, 
+                            response_type, 
+                            message, 
+                            quantity_offered
+                        )
+                        
+                        if result:
+                            if response_type == "accept":
+                                st.success("Thank you for accepting! The requester has been notified.")
+                                st.balloons()
+                            else:
+                                st.info("Your response has been recorded. The requester has been notified.")
+                            st.rerun()
+                        else:
+                            st.error("Failed to submit response. Please try again.")
+    else:
+        st.info("No blood requests match your blood group at this time.")
+        st.markdown("""
+        **When new requests come in that match your blood group, you will:**
+        - Receive email notifications
+        - Receive SMS alerts
+        - See them listed here
+        
+        Thank you for being a registered donor! 🙏
+        """)
+
+def show_request_responses():
+    """Show responses received for requester's blood requests"""
+    st.header("📬 Responses to Your Blood Requests")
+    
+    from request_management import get_requester_notifications
+    
+    # Get all responses for this requester
+    responses = get_requester_notifications(st.session_state.username)
+    
+    if responses:
+        # Group responses by request
+        requests_dict = {}
+        for response in responses:
+            request_id = response['request_details'].get('id')
+            if request_id not in requests_dict:
+                requests_dict[request_id] = {
+                    'request': response['request_details'],
+                    'responses': []
+                }
+            requests_dict[request_id]['responses'].append(response)
+        
+        for request_id, data in requests_dict.items():
+            request = data['request']
+            responses_list = data['responses']
+            
+            with st.expander(f"Request #{request_id} - {request['blood_group']} - {len(responses_list)} Response(s)"):
+                # Show original request details
+                st.markdown("### Original Request")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown(f"**Blood Group:** {request['blood_group']}")
+                    st.markdown(f"**Quantity:** {request['quantity']} ml")
+                    st.markdown(f"**Urgency:** {request['urgency']}")
+                
+                with col2:
+                    st.markdown(f"**Required By:** {request['required_date']}")
+                    st.markdown(f"**Status:** {request['status'].title()}")
+                
+                st.markdown("---")
+                
+                # Show responses
+                st.markdown("### Donor Responses")
+                
+                for response in responses_list:
+                    response_date = datetime.fromisoformat(response['response_date'])
+                    
+                    if response['response_type'] == 'accept':
+                        st.success(f"✅ **{response['donor_username']}** accepted your request")
+                        st.markdown(f"**Quantity Offered:** {response['quantity_offered']} ml")
+                        if response['message']:
+                            st.markdown(f"**Message:** {response['message']}")
+                        st.markdown(f"**Response Date:** {response_date.strftime('%Y-%m-%d %H:%M')}")
+                    else:
+                        st.warning(f"❌ **{response['donor_username']}** declined your request")
+                        if response['message']:
+                            st.markdown(f"**Reason:** {response['message']}")
+                        st.markdown(f"**Response Date:** {response_date.strftime('%Y-%m-%d %H:%M')}")
+                    
+                    st.markdown("---")
+    else:
+        st.info("No responses to your blood requests yet.")
+        st.markdown("""
+        **When donors respond to your requests, you will see:**
+        - Acceptance or decline notifications
+        - Donor contact information (if accepted)
+        - Messages from donors
+        - Quantity offered by donors
+        """)
+
 def donate_blood_page():
     st.header("🩸 Donate Blood")
     
@@ -601,11 +769,25 @@ def request_blood_page():
         
         if submitted:
             if reason and contact_info:
-                if request_blood(st.session_state.username, blood_group, quantity, urgency, required_date, reason, contact_info):
+                result = request_blood(st.session_state.username, blood_group, quantity, urgency, required_date, reason, contact_info)
+                if result['success']:
                     st.success("Blood request submitted successfully!")
-                    st.info("You will be contacted once matching blood is available.")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.info(f"**Request ID:** {result['request_id']}")
+                        st.info(f"**Compatible Donors Found:** {result['total_compatible']}")
+                    with col2:
+                        st.info(f"**Notifications Sent:** {result['notifications_sent']}")
+                        if result['total_compatible'] > 0:
+                            st.success("Compatible donors have been notified!")
+                        else:
+                            st.warning("No compatible donors found at the moment. Your request is still active.")
+                    
+                    if 'error' in result:
+                        st.warning(f"Note: {result['error']}")
                 else:
-                    st.error("Failed to submit request. Please try again.")
+                    st.error(f"Failed to submit request: {result.get('error', 'Unknown error')}")
             else:
                 st.error("Please fill in all required fields.")
 
