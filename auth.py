@@ -44,9 +44,7 @@ def register_user(username, email, phone, password, user_type, blood_group=None,
     if not is_otp_verified(f"email_{email}"):
         return {'success': False, 'error': 'Email not verified'}
     
-    # Check if phone OTP is verified  
-    if not is_otp_verified(f"phone_{phone}"):
-        return {'success': False, 'error': 'Phone number not verified'}
+    # Phone verification removed - email verification only
     
     # Create new user
     new_user = {
@@ -59,7 +57,7 @@ def register_user(username, email, phone, password, user_type, blood_group=None,
         'blood_group': blood_group,
         'age': age,
         'email_verified': True,
-        'phone_verified': True
+        'phone_verified': False
     }
     
     users.append(new_user)

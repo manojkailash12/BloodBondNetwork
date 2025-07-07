@@ -268,15 +268,27 @@ def register_form():
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            if st.button("Send Email OTP"):
+            if st.button("Send Email Verification"):
                 result = send_email_otp(st.session_state.registration_data['email'])
                 if result['success']:
-                    st.success(f"OTP sent to {st.session_state.registration_data['email']}")
-                    st.info(f"For demo purposes, your OTP is: **{result['otp']}**")
+                    st.success(f"Verification email sent to {st.session_state.registration_data['email']}")
+                    
+                    # Display the email content locally
+                    st.markdown("---")
+                    st.markdown("### 📧 Email Content (Demo Mode)")
+                    st.info(f"""
+                    **To:** {st.session_state.registration_data['email']}
+                    **Subject:** Email Verification - Blood Bank System
+                    
+                    **Your verification code is:** {result['otp']}
+                    
+                    This code will expire in 10 minutes.
+                    """)
+                    st.markdown("---")
                 else:
                     st.error(result['error'])
             
-            email_otp = st.text_input("Enter Email OTP", max_chars=6)
+            email_otp = st.text_input("Enter Email Verification Code", max_chars=6)
             
             if st.button("Verify Email"):
                 if email_otp:
@@ -286,9 +298,9 @@ def register_form():
                         st.session_state.registration_step = 3
                         st.rerun()
                     else:
-                        st.error("Invalid or expired OTP.")
+                        st.error("Invalid or expired verification code.")
                 else:
-                    st.error("Please enter the OTP.")
+                    st.error("Please enter the verification code.")
         
         with col2:
             st.info(f"**Email:** {st.session_state.registration_data['email']}")
@@ -296,47 +308,14 @@ def register_form():
                 st.success("✅ Email Verified")
     
     elif st.session_state.registration_step == 3:
-        st.markdown("### Step 3: Phone Verification")
+        st.markdown("### Step 3: Complete Registration")
         
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            if st.button("Send SMS OTP"):
-                result = send_phone_otp(st.session_state.registration_data['phone'])
-                if result['success']:
-                    st.success(f"OTP sent to {st.session_state.registration_data['phone']}")
-                    st.info(f"For demo purposes, your OTP is: **{result['otp']}**")
-                else:
-                    st.error(result['error'])
-            
-            phone_otp = st.text_input("Enter SMS OTP", max_chars=6)
-            
-            if st.button("Verify Phone"):
-                if phone_otp:
-                    if verify_phone_otp(st.session_state.registration_data['phone'], phone_otp):
-                        st.success("Phone verified successfully!")
-                        st.session_state.phone_verified = True
-                        st.session_state.registration_step = 4
-                        st.rerun()
-                    else:
-                        st.error("Invalid or expired OTP.")
-                else:
-                    st.error("Please enter the OTP.")
-        
-        with col2:
-            st.info(f"**Phone:** {st.session_state.registration_data['phone']}")
-            if st.session_state.phone_verified:
-                st.success("✅ Phone Verified")
-    
-    elif st.session_state.registration_step == 4:
-        st.markdown("### Step 4: Complete Registration")
-        
-        st.success("All verifications complete! Ready to create your account.")
+        st.success("Email verification complete! Ready to create your account.")
         
         col1, col2 = st.columns(2)
         with col1:
             st.info("**Email:** ✅ Verified")
-            st.info("**Phone:** ✅ Verified")
+            st.info(f"**Phone:** {st.session_state.registration_data['phone']}")
         
         with col2:
             st.info(f"**Username:** {st.session_state.registration_data['username']}")
@@ -351,7 +330,7 @@ def register_form():
             )
             
             if result['success']:
-                st.success("🎉 Registration successful! Please login to continue.")
+                st.success("Registration successful! Please login to continue.")
                 st.balloons()
                 # Reset registration state
                 st.session_state.registration_step = 1
@@ -500,7 +479,12 @@ def show_my_notifications():
         
         # Display notifications
         for i, notification in enumerate(notifications):
-            with st.expander(f"{notification['type'].upper()}: {notification['subject']}" if notification['type'] == 'email' else f"SMS: {notification['message'][:50]}..."):
+            if notification['type'] == 'email':
+                title = f"📧 EMAIL: {notification['subject']}"
+            else:
+                title = f"📱 SMS: {notification['message'][:50]}..."
+                
+            with st.expander(title):
                 col1, col2 = st.columns([3, 1])
                 
                 with col1:
@@ -508,11 +492,11 @@ def show_my_notifications():
                         st.markdown(f"**To:** {notification['recipient']}")
                         st.markdown(f"**Subject:** {notification['subject']}")
                         st.markdown("**Message:**")
-                        st.text(notification['message'])
+                        st.text_area("", value=notification['message'], height=200, disabled=True, key=f"email_{i}")
                     else:  # SMS
                         st.markdown(f"**To:** {notification['recipient']}")
                         st.markdown("**Message:**")
-                        st.text(notification['message'])
+                        st.text_area("", value=notification['message'], height=100, disabled=True, key=f"sms_{i}")
                 
                 with col2:
                     timestamp = datetime.fromisoformat(notification['timestamp'])

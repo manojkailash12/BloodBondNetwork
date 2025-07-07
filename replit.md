@@ -105,12 +105,19 @@ This is a comprehensive Blood Bank Management System built with Streamlit that f
 Changelog:
 - July 07, 2025. Initial setup with basic functionality
 - July 07, 2025. Added advanced authentication features:
-  * Multi-step registration with email and SMS OTP verification
-  * Email notification system for registration confirmations
+  * Multi-step registration with email OTP verification (SMS removed per user request)
+  * Local email notification system showing actual email content
   * Password reset functionality with secure tokens
   * Change password feature for logged-in users
   * Notification history viewing for users
   * Beautiful medical-themed background with SVG graphics
+- July 07, 2025. Added blood request management system:
+  * Automatic donor notification when blood requests are submitted
+  * Blood compatibility matching and donor filtering
+  * Donor response system (accept/decline with messages)
+  * Request tracking with unique IDs
+  * Real-time response notifications to requesters
+  * Complete donor-requester communication workflow
 ```
 
 ## User Preferences
