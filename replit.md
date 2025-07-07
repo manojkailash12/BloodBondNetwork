@@ -107,8 +107,8 @@ Changelog:
 - July 07, 2025. Added simplified authentication features:
   * Immediate registration with welcome email (all OTP verification removed)
   * Local email notification system showing actual email content
-  * Password reset with secure reset links and tokens
-  * Change password feature for logged-in users
+  * Password reset with secure reset links and tokens via email
+  * Change password feature integrated into dashboard home page
   * Notification history viewing for users
   * Beautiful medical-themed background with SVG graphics
 - July 07, 2025. Added blood request management system:

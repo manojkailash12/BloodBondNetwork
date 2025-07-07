@@ -176,6 +176,39 @@ def show_dashboard():
         df_compatibility = pd.DataFrame(compatibility_data)
         st.markdown("**Donor → Recipient Compatibility Matrix:**")
         st.dataframe(df_compatibility, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Change Password Section
+    if st.expander("🔒 Change Password"):
+        from auth import change_password
+        
+        st.markdown("**Update your account password**")
+        
+        with st.form("change_password_form"):
+            current_password = st.text_input("Current Password", type="password")
+            new_password = st.text_input("New Password", type="password")
+            confirm_password = st.text_input("Confirm New Password", type="password")
+            
+            submitted = st.form_submit_button("Change Password")
+            
+            if submitted:
+                if current_password and new_password and confirm_password:
+                    if new_password != confirm_password:
+                        st.error("New passwords do not match.")
+                    elif len(new_password) < 6:
+                        st.error("New password must be at least 6 characters long.")
+                    elif current_password == new_password:
+                        st.error("New password must be different from current password.")
+                    else:
+                        result = change_password(st.session_state.username, current_password, new_password)
+                        if result['success']:
+                            st.success("Password changed successfully!")
+                            st.balloons()
+                        else:
+                            st.error(result['error'])
+                else:
+                    st.error("Please fill in all fields.")
 
 def show_admin_analytics():
     """Show detailed analytics for admin users"""

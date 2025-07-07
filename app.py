@@ -141,11 +141,11 @@ def main():
         
         # Navigation menu
         if st.session_state.user_type == "donor":
-            menu_options = ["Dashboard", "Donate Blood", "Blood Requests", "Blood Bank Map", "My Donations", "My Notifications", "Change Password"]
+            menu_options = ["Dashboard", "Donate Blood", "Blood Requests", "Blood Bank Map", "My Donations", "My Notifications"]
         elif st.session_state.user_type == "receiver":
-            menu_options = ["Dashboard", "Request Blood", "Blood Bank Map", "My Requests", "Request Responses", "My Notifications", "Change Password"]
+            menu_options = ["Dashboard", "Request Blood", "Blood Bank Map", "My Requests", "Request Responses", "My Notifications"]
         else:
-            menu_options = ["Dashboard", "Blood Bank Map", "My Notifications", "Change Password"]
+            menu_options = ["Dashboard", "Blood Bank Map", "My Notifications"]
             
         selected_page = st.sidebar.selectbox("Navigation", menu_options)
         
@@ -168,8 +168,6 @@ def main():
             show_my_requests()
         elif selected_page == "My Notifications":
             show_my_notifications()
-        elif selected_page == "Change Password":
-            change_password_page()
     else:
         # Login/Register interface
         auth_tab1, auth_tab2, auth_tab3 = st.tabs(["Login", "Register", "Forgot Password"])
@@ -365,43 +363,7 @@ def forgot_password_form():
                 del st.session_state.reset_email
             st.rerun()
 
-def change_password_page():
-    st.header("🔒 Change Password")
-    
-    with st.form("change_password_form"):
-        current_password = st.text_input("Current Password", type="password")
-        new_password = st.text_input("New Password", type="password")
-        confirm_password = st.text_input("Confirm New Password", type="password")
-        
-        submitted = st.form_submit_button("Change Password")
-        
-        if submitted:
-            if current_password and new_password and confirm_password:
-                if new_password != confirm_password:
-                    st.error("New passwords do not match.")
-                elif len(new_password) < 6:
-                    st.error("Password must be at least 6 characters long.")
-                elif current_password == new_password:
-                    st.error("New password must be different from current password.")
-                else:
-                    result = change_password(st.session_state.username, current_password, new_password)
-                    if result['success']:
-                        st.success(result['message'])
-                        st.balloons()
-                    else:
-                        st.error(result['error'])
-            else:
-                st.error("Please fill in all fields.")
-    
-    st.markdown("---")
-    st.markdown("### Password Security Tips")
-    st.markdown("""
-    - Use at least 8 characters
-    - Include uppercase and lowercase letters
-    - Include numbers and special characters
-    - Don't use personal information
-    - Don't reuse passwords from other sites
-    """)
+
 
 def show_my_notifications():
     st.header("📬 My Notifications")
