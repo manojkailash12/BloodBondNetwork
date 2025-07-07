@@ -5,10 +5,15 @@ from datetime import datetime
 import pandas as pd
 
 # Import custom modules
-from auth import login_user, register_user, logout_user
+from auth import (
+    login_user, logout_user, send_email_otp, send_phone_otp, 
+    verify_email_otp, verify_phone_otp, register_user,
+    initiate_password_reset, reset_password, change_password
+)
 from blood_management import donate_blood, request_blood, get_blood_inventory
 from dashboard import show_dashboard
 from maps import show_blood_bank_map
+import base64
 
 # Initialize data directories
 def init_data_dirs():
@@ -20,7 +25,9 @@ def init_data_dirs():
         "data/blood_inventory.json", 
         "data/donations.json",
         "data/requests.json",
-        "data/blood_banks.json"
+        "data/blood_banks.json",
+        "data/otps.json",
+        "data/notifications.json"
     ]
     
     for file_path in files:
@@ -39,11 +46,52 @@ def init_data_dirs():
                     "A+": 0, "A-": 0, "B+": 0, "B-": 0,
                     "AB+": 0, "AB-": 0, "O+": 0, "O-": 0
                 }
+            elif "otps.json" in file_path or "notifications.json" in file_path:
+                sample_data = {} if "otps.json" in file_path else []
             else:
                 sample_data = []
             
             with open(file_path, 'w') as f:
                 json.dump(sample_data, f, indent=2)
+
+def get_base64_svg(svg_file):
+    """Convert SVG to base64 for embedding"""
+    try:
+        with open(svg_file, "r") as f:
+            svg_content = f.read()
+        return base64.b64encode(svg_content.encode()).decode()
+    except:
+        return None
+
+def add_bg_from_local(svg_file):
+    """Add background from local SVG file"""
+    svg_base64 = get_base64_svg(svg_file)
+    if svg_base64:
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/svg+xml;base64,{svg_base64}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+            }}
+            .main .block-container {{
+                background-color: rgba(255, 255, 255, 0.95);
+                border-radius: 10px;
+                padding: 2rem;
+                margin-top: 1rem;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }}
+            .sidebar .sidebar-content {{
+                background-color: rgba(255, 255, 255, 0.95);
+                border-radius: 10px;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
 
 def main():
     st.set_page_config(
@@ -52,6 +100,9 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    
+    # Add background
+    add_bg_from_local("static/background.svg")
     
     # Initialize data
     init_data_dirs()
@@ -63,6 +114,12 @@ def main():
         st.session_state.user_type = None
     if 'username' not in st.session_state:
         st.session_state.username = None
+    if 'email_verified' not in st.session_state:
+        st.session_state.email_verified = False
+    if 'phone_verified' not in st.session_state:
+        st.session_state.phone_verified = False
+    if 'registration_data' not in st.session_state:
+        st.session_state.registration_data = {}
     
     # Main header
     st.title("🩸 Blood Bank Management System")
@@ -81,11 +138,11 @@ def main():
         
         # Navigation menu
         if st.session_state.user_type == "donor":
-            menu_options = ["Dashboard", "Donate Blood", "Blood Bank Map", "My Donations"]
+            menu_options = ["Dashboard", "Donate Blood", "Blood Bank Map", "My Donations", "My Notifications", "Change Password"]
         elif st.session_state.user_type == "receiver":
-            menu_options = ["Dashboard", "Request Blood", "Blood Bank Map", "My Requests"]
+            menu_options = ["Dashboard", "Request Blood", "Blood Bank Map", "My Requests", "My Notifications", "Change Password"]
         else:
-            menu_options = ["Dashboard", "Blood Bank Map"]
+            menu_options = ["Dashboard", "Blood Bank Map", "My Notifications", "Change Password"]
             
         selected_page = st.sidebar.selectbox("Navigation", menu_options)
         
@@ -102,15 +159,22 @@ def main():
             show_my_donations()
         elif selected_page == "My Requests":
             show_my_requests()
+        elif selected_page == "My Notifications":
+            show_my_notifications()
+        elif selected_page == "Change Password":
+            change_password_page()
     else:
         # Login/Register interface
-        auth_tab1, auth_tab2 = st.tabs(["Login", "Register"])
+        auth_tab1, auth_tab2, auth_tab3 = st.tabs(["Login", "Register", "Forgot Password"])
         
         with auth_tab1:
             login_form()
         
         with auth_tab2:
             register_form()
+        
+        with auth_tab3:
+            forgot_password_form()
 
 def login_form():
     st.subheader("Login to Your Account")
@@ -135,46 +199,341 @@ def login_form():
 def register_form():
     st.subheader("Create New Account")
     
-    with st.form("register_form"):
-        col1, col2 = st.columns(2)
+    # Step 1: Basic Information
+    if 'registration_step' not in st.session_state:
+        st.session_state.registration_step = 1
+    
+    if st.session_state.registration_step == 1:
+        st.markdown("### Step 1: Basic Information")
+        
+        with st.form("basic_info_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                username = st.text_input("Username")
+                email = st.text_input("Email")
+                phone = st.text_input("Phone Number")
+                
+            with col2:
+                password = st.text_input("Password", type="password")
+                confirm_password = st.text_input("Confirm Password", type="password")
+                user_type = st.selectbox("I want to:", ["donor", "receiver"])
+            
+            # Additional fields for donors
+            if user_type == "donor":
+                st.markdown("**Additional Information for Donors:**")
+                col3, col4 = st.columns(2)
+                with col3:
+                    blood_group = st.selectbox("Blood Group", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+                with col4:
+                    age = st.number_input("Age", min_value=18, max_value=65, value=25)
+            else:
+                blood_group = None
+                age = None
+            
+            submitted = st.form_submit_button("Proceed to Verification")
+            
+            if submitted:
+                if username and email and phone and password and confirm_password:
+                    if password != confirm_password:
+                        st.error("Passwords do not match.")
+                    elif len(password) < 6:
+                        st.error("Password must be at least 6 characters long.")
+                    else:
+                        # Store registration data
+                        st.session_state.registration_data = {
+                            'username': username,
+                            'email': email,
+                            'phone': phone,
+                            'password': password,
+                            'user_type': user_type,
+                            'blood_group': blood_group,
+                            'age': age
+                        }
+                        st.session_state.registration_step = 2
+                        st.rerun()
+                else:
+                    st.error("Please fill in all required fields.")
+    
+    elif st.session_state.registration_step == 2:
+        st.markdown("### Step 2: Email Verification")
+        
+        col1, col2 = st.columns([2, 1])
         
         with col1:
-            username = st.text_input("Username")
-            email = st.text_input("Email")
-            phone = st.text_input("Phone Number")
+            if st.button("Send Email OTP"):
+                result = send_email_otp(st.session_state.registration_data['email'])
+                if result['success']:
+                    st.success(f"OTP sent to {st.session_state.registration_data['email']}")
+                    st.info(f"For demo purposes, your OTP is: **{result['otp']}**")
+                else:
+                    st.error(result['error'])
             
+            email_otp = st.text_input("Enter Email OTP", max_chars=6)
+            
+            if st.button("Verify Email"):
+                if email_otp:
+                    if verify_email_otp(st.session_state.registration_data['email'], email_otp):
+                        st.success("Email verified successfully!")
+                        st.session_state.email_verified = True
+                        st.session_state.registration_step = 3
+                        st.rerun()
+                    else:
+                        st.error("Invalid or expired OTP.")
+                else:
+                    st.error("Please enter the OTP.")
+        
         with col2:
-            password = st.text_input("Password", type="password")
-            confirm_password = st.text_input("Confirm Password", type="password")
-            user_type = st.selectbox("I want to:", ["donor", "receiver"])
+            st.info(f"**Email:** {st.session_state.registration_data['email']}")
+            if st.session_state.email_verified:
+                st.success("✅ Email Verified")
+    
+    elif st.session_state.registration_step == 3:
+        st.markdown("### Step 3: Phone Verification")
         
-        # Additional fields for donors
-        if user_type == "donor":
-            st.markdown("**Additional Information for Donors:**")
-            col3, col4 = st.columns(2)
-            with col3:
-                blood_group = st.selectbox("Blood Group", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
-            with col4:
-                age = st.number_input("Age", min_value=18, max_value=65, value=25)
-        else:
-            blood_group = None
-            age = None
+        col1, col2 = st.columns([2, 1])
         
-        submitted = st.form_submit_button("Register")
+        with col1:
+            if st.button("Send SMS OTP"):
+                result = send_phone_otp(st.session_state.registration_data['phone'])
+                if result['success']:
+                    st.success(f"OTP sent to {st.session_state.registration_data['phone']}")
+                    st.info(f"For demo purposes, your OTP is: **{result['otp']}**")
+                else:
+                    st.error(result['error'])
+            
+            phone_otp = st.text_input("Enter SMS OTP", max_chars=6)
+            
+            if st.button("Verify Phone"):
+                if phone_otp:
+                    if verify_phone_otp(st.session_state.registration_data['phone'], phone_otp):
+                        st.success("Phone verified successfully!")
+                        st.session_state.phone_verified = True
+                        st.session_state.registration_step = 4
+                        st.rerun()
+                    else:
+                        st.error("Invalid or expired OTP.")
+                else:
+                    st.error("Please enter the OTP.")
+        
+        with col2:
+            st.info(f"**Phone:** {st.session_state.registration_data['phone']}")
+            if st.session_state.phone_verified:
+                st.success("✅ Phone Verified")
+    
+    elif st.session_state.registration_step == 4:
+        st.markdown("### Step 4: Complete Registration")
+        
+        st.success("All verifications complete! Ready to create your account.")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info("**Email:** ✅ Verified")
+            st.info("**Phone:** ✅ Verified")
+        
+        with col2:
+            st.info(f"**Username:** {st.session_state.registration_data['username']}")
+            st.info(f"**Type:** {st.session_state.registration_data['user_type'].title()}")
+        
+        if st.button("Create Account", type="primary"):
+            data = st.session_state.registration_data
+            result = register_user(
+                data['username'], data['email'], data['phone'], 
+                data['password'], data['user_type'], 
+                data['blood_group'], data['age']
+            )
+            
+            if result['success']:
+                st.success("🎉 Registration successful! Please login to continue.")
+                st.balloons()
+                # Reset registration state
+                st.session_state.registration_step = 1
+                st.session_state.registration_data = {}
+                st.session_state.email_verified = False
+                st.session_state.phone_verified = False
+            else:
+                st.error(f"Registration failed: {result['error']}")
+    
+    # Reset button
+    if st.session_state.registration_step > 1:
+        if st.button("Start Over"):
+            st.session_state.registration_step = 1
+            st.session_state.registration_data = {}
+            st.session_state.email_verified = False
+            st.session_state.phone_verified = False
+            st.rerun()
+
+def forgot_password_form():
+    st.subheader("Reset Your Password")
+    
+    if 'reset_step' not in st.session_state:
+        st.session_state.reset_step = 1
+    
+    if st.session_state.reset_step == 1:
+        st.markdown("### Step 1: Enter Email")
+        
+        with st.form("email_form"):
+            email = st.text_input("Enter your registered email address")
+            submitted = st.form_submit_button("Send Reset Instructions")
+            
+            if submitted:
+                if email:
+                    result = initiate_password_reset(email)
+                    if result['success']:
+                        st.success(result['message'])
+                        st.session_state.reset_email = email
+                        st.session_state.reset_step = 2
+                        st.rerun()
+                    else:
+                        st.error(result['error'])
+                else:
+                    st.error("Please enter your email address.")
+    
+    elif st.session_state.reset_step == 2:
+        st.markdown("### Step 2: Enter Reset Token")
+        st.info(f"Reset instructions sent to: {st.session_state.reset_email}")
+        
+        with st.form("reset_form"):
+            token = st.text_input("Enter Reset Token")
+            new_password = st.text_input("New Password", type="password")
+            confirm_password = st.text_input("Confirm New Password", type="password")
+            
+            submitted = st.form_submit_button("Reset Password")
+            
+            if submitted:
+                if token and new_password and confirm_password:
+                    if new_password != confirm_password:
+                        st.error("Passwords do not match.")
+                    elif len(new_password) < 6:
+                        st.error("Password must be at least 6 characters long.")
+                    else:
+                        result = reset_password(st.session_state.reset_email, token, new_password)
+                        if result['success']:
+                            st.success(result['message'])
+                            st.balloons()
+                            # Reset state
+                            st.session_state.reset_step = 1
+                            if 'reset_email' in st.session_state:
+                                del st.session_state.reset_email
+                        else:
+                            st.error(result['error'])
+                else:
+                    st.error("Please fill in all fields.")
+        
+        # Show demo token for testing
+        from notifications import load_otps
+        otps = load_otps()
+        reset_key = f"reset_{st.session_state.reset_email}"
+        if reset_key in otps:
+            st.info(f"For demo purposes, your reset token is: **{otps[reset_key]['token']}**")
+    
+    if st.session_state.reset_step > 1:
+        if st.button("Back to Email Entry"):
+            st.session_state.reset_step = 1
+            if 'reset_email' in st.session_state:
+                del st.session_state.reset_email
+            st.rerun()
+
+def change_password_page():
+    st.header("🔒 Change Password")
+    
+    with st.form("change_password_form"):
+        current_password = st.text_input("Current Password", type="password")
+        new_password = st.text_input("New Password", type="password")
+        confirm_password = st.text_input("Confirm New Password", type="password")
+        
+        submitted = st.form_submit_button("Change Password")
         
         if submitted:
-            if username and email and phone and password and confirm_password:
-                if password != confirm_password:
-                    st.error("Passwords do not match.")
-                elif len(password) < 6:
+            if current_password and new_password and confirm_password:
+                if new_password != confirm_password:
+                    st.error("New passwords do not match.")
+                elif len(new_password) < 6:
                     st.error("Password must be at least 6 characters long.")
+                elif current_password == new_password:
+                    st.error("New password must be different from current password.")
                 else:
-                    if register_user(username, email, phone, password, user_type, blood_group, age):
-                        st.success("Registration successful! Please login.")
+                    result = change_password(st.session_state.username, current_password, new_password)
+                    if result['success']:
+                        st.success(result['message'])
+                        st.balloons()
                     else:
-                        st.error("Username already exists.")
+                        st.error(result['error'])
             else:
-                st.error("Please fill in all required fields.")
+                st.error("Please fill in all fields.")
+    
+    st.markdown("---")
+    st.markdown("### Password Security Tips")
+    st.markdown("""
+    - Use at least 8 characters
+    - Include uppercase and lowercase letters
+    - Include numbers and special characters
+    - Don't use personal information
+    - Don't reuse passwords from other sites
+    """)
+
+def show_my_notifications():
+    st.header("📬 My Notifications")
+    
+    # Get user email for notifications
+    from auth import get_user_info
+    user_info = get_user_info(st.session_state.username)
+    
+    if not user_info:
+        st.error("Could not retrieve user information.")
+        return
+    
+    # Get notifications for this user
+    from notifications import get_user_notifications
+    notifications = get_user_notifications(user_info['email'])
+    
+    if notifications:
+        # Sort by timestamp, most recent first
+        notifications.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        # Display notifications
+        for i, notification in enumerate(notifications):
+            with st.expander(f"{notification['type'].upper()}: {notification['subject']}" if notification['type'] == 'email' else f"SMS: {notification['message'][:50]}..."):
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    if notification['type'] == 'email':
+                        st.markdown(f"**To:** {notification['recipient']}")
+                        st.markdown(f"**Subject:** {notification['subject']}")
+                        st.markdown("**Message:**")
+                        st.text(notification['message'])
+                    else:  # SMS
+                        st.markdown(f"**To:** {notification['recipient']}")
+                        st.markdown("**Message:**")
+                        st.text(notification['message'])
+                
+                with col2:
+                    timestamp = datetime.fromisoformat(notification['timestamp'])
+                    st.markdown(f"**Date:** {timestamp.strftime('%Y-%m-%d')}")
+                    st.markdown(f"**Time:** {timestamp.strftime('%H:%M:%S')}")
+                    st.markdown(f"**Status:** ✅ {notification['status'].title()}")
+        
+        # Summary
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            email_count = len([n for n in notifications if n['type'] == 'email'])
+            st.metric("Total Emails", email_count)
+        with col2:
+            sms_count = len([n for n in notifications if n['type'] == 'sms'])
+            st.metric("Total SMS", sms_count)
+        with col3:
+            st.metric("Total Notifications", len(notifications))
+    
+    else:
+        st.info("No notifications yet.")
+        st.markdown("""
+        **You will receive notifications for:**
+        - Registration confirmation
+        - Password reset requests  
+        - OTP verification codes
+        - Important system updates
+        """)
 
 def donate_blood_page():
     st.header("🩸 Donate Blood")

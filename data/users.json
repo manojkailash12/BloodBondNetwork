@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "username": "Manoj2005",
+    "email": "admin@gmail.com",
+    "phone": "8871397335",
+    "password": "70e92f684087f55607d63908f74d7e9d708f4581fb713fdf9271342f01fbc67f",
+    "user_type": "donor",
+    "registration_date": "2025-07-07T15:40:12.852225",
+    "blood_group": "A+",
+    "age": 21
+  }
+]

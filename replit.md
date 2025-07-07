@@ -103,7 +103,14 @@ This is a comprehensive Blood Bank Management System built with Streamlit that f
 
 ```
 Changelog:
-- July 07, 2025. Initial setup
+- July 07, 2025. Initial setup with basic functionality
+- July 07, 2025. Added advanced authentication features:
+  * Multi-step registration with email and SMS OTP verification
+  * Email notification system for registration confirmations
+  * Password reset functionality with secure tokens
+  * Change password feature for logged-in users
+  * Notification history viewing for users
+  * Beautiful medical-themed background with SVG graphics
 ```
 
 ## User Preferences
@@ -133,7 +140,21 @@ Preferred communication style: Simple, everyday language.
 - **Benefits**: Easy testing, debugging, and feature additions
 
 ### Password Security
-- **Problem**: Secure user authentication
-- **Solution**: SHA256 hashing for password storage
-- **Rationale**: Prevents plain text password storage
+- **Problem**: Secure user authentication and password management
+- **Solution**: SHA256 hashing for password storage with multi-factor authentication
+- **Rationale**: Prevents plain text password storage and adds verification layers
+- **Features**: Email/SMS OTP verification, password reset tokens, change password functionality
 - **Note**: Production systems should consider more robust hashing (bcrypt, scrypt)
+
+### Notification System
+- **Problem**: User communication and verification needs
+- **Solution**: Local notification storage system simulating email/SMS services
+- **Rationale**: Provides authentication feedback without external service dependencies
+- **Features**: Registration confirmations, OTP delivery, password reset instructions
+- **Trade-offs**: Local storage only but enables full workflow testing
+
+### Multi-Step Registration
+- **Problem**: Need secure user onboarding with verification
+- **Solution**: Four-step registration process with email and phone verification
+- **Rationale**: Ensures valid contact information and prevents spam registrations
+- **Benefits**: Enhanced security, better user data quality, professional user experience
