@@ -1,0 +1,58 @@
+[
+  {
+    "name": "City Blood Bank",
+    "lat": 28.6139,
+    "lng": 77.2090,
+    "address": "Connaught Place, New Delhi, India",
+    "contact": "+91-9876543210"
+  },
+  {
+    "name": "Central Hospital Blood Bank",
+    "lat": 19.0760,
+    "lng": 72.8777,
+    "address": "Fort, Mumbai, Maharashtra, India",
+    "contact": "+91-9876543211"
+  },
+  {
+    "name": "Metro Blood Center",
+    "lat": 12.9716,
+    "lng": 77.5946,
+    "address": "MG Road, Bangalore, Karnataka, India",
+    "contact": "+91-9876543212"
+  },
+  {
+    "name": "Regional Blood Bank",
+    "lat": 13.0827,
+    "lng": 80.2707,
+    "address": "T. Nagar, Chennai, Tamil Nadu, India",
+    "contact": "+91-9876543213"
+  },
+  {
+    "name": "Apollo Blood Bank",
+    "lat": 17.3850,
+    "lng": 78.4867,
+    "address": "Banjara Hills, Hyderabad, Telangana, India",
+    "contact": "+91-9876543214"
+  },
+  {
+    "name": "Life Care Blood Center",
+    "lat": 22.5726,
+    "lng": 88.3639,
+    "address": "Park Street, Kolkata, West Bengal, India",
+    "contact": "+91-9876543215"
+  },
+  {
+    "name": "Ruby Hall Blood Bank",
+    "lat": 18.5204,
+    "lng": 73.8567,
+    "address": "Pune, Maharashtra, India",
+    "contact": "+91-9876543216"
+  },
+  {
+    "name": "Fortis Blood Bank",
+    "lat": 26.9124,
+    "lng": 75.7873,
+    "address": "Malviya Nagar, Jaipur, Rajasthan, India",
+    "contact": "+91-9876543217"
+  }
+]
