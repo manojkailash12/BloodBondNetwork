@@ -206,148 +206,71 @@ def login_form():
 def register_form():
     st.subheader("Create New Account")
     
-    # Step 1: Basic Information
-    if 'registration_step' not in st.session_state:
-        st.session_state.registration_step = 1
-    
-    if st.session_state.registration_step == 1:
-        st.markdown("### Step 1: Basic Information")
-        
-        with st.form("basic_info_form"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                username = st.text_input("Username")
-                email = st.text_input("Email")
-                phone = st.text_input("Phone Number")
-                
-            with col2:
-                password = st.text_input("Password", type="password")
-                confirm_password = st.text_input("Confirm Password", type="password")
-                user_type = st.selectbox("I want to:", ["donor", "receiver"])
-            
-            # Additional fields for donors
-            if user_type == "donor":
-                st.markdown("**Additional Information for Donors:**")
-                col3, col4 = st.columns(2)
-                with col3:
-                    blood_group = st.selectbox("Blood Group", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
-                with col4:
-                    age = st.number_input("Age", min_value=18, max_value=65, value=25)
-            else:
-                blood_group = None
-                age = None
-            
-            submitted = st.form_submit_button("Proceed to Verification")
-            
-            if submitted:
-                if username and email and phone and password and confirm_password:
-                    if password != confirm_password:
-                        st.error("Passwords do not match.")
-                    elif len(password) < 6:
-                        st.error("Password must be at least 6 characters long.")
-                    else:
-                        # Store registration data
-                        st.session_state.registration_data = {
-                            'username': username,
-                            'email': email,
-                            'phone': phone,
-                            'password': password,
-                            'user_type': user_type,
-                            'blood_group': blood_group,
-                            'age': age
-                        }
-                        st.session_state.registration_step = 2
-                        st.rerun()
-                else:
-                    st.error("Please fill in all required fields.")
-    
-    elif st.session_state.registration_step == 2:
-        st.markdown("### Step 2: Email Verification")
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            if st.button("Send Email Verification"):
-                result = send_email_otp(st.session_state.registration_data['email'])
-                if result['success']:
-                    st.success(f"Verification email sent to {st.session_state.registration_data['email']}")
-                    
-                    # Display the email content locally
-                    st.markdown("---")
-                    st.markdown("### 📧 Email Content (Demo Mode)")
-                    st.info(f"""
-                    **To:** {st.session_state.registration_data['email']}
-                    **Subject:** Email Verification - Blood Bank System
-                    
-                    **Your verification code is:** {result['otp']}
-                    
-                    This code will expire in 10 minutes.
-                    """)
-                    st.markdown("---")
-                else:
-                    st.error(result['error'])
-            
-            email_otp = st.text_input("Enter Email Verification Code", max_chars=6)
-            
-            if st.button("Verify Email"):
-                if email_otp:
-                    if verify_email_otp(st.session_state.registration_data['email'], email_otp):
-                        st.success("Email verified successfully!")
-                        st.session_state.email_verified = True
-                        st.session_state.registration_step = 3
-                        st.rerun()
-                    else:
-                        st.error("Invalid or expired verification code.")
-                else:
-                    st.error("Please enter the verification code.")
-        
-        with col2:
-            st.info(f"**Email:** {st.session_state.registration_data['email']}")
-            if st.session_state.email_verified:
-                st.success("✅ Email Verified")
-    
-    elif st.session_state.registration_step == 3:
-        st.markdown("### Step 3: Complete Registration")
-        
-        st.success("Email verification complete! Ready to create your account.")
-        
+    with st.form("register_form"):
         col1, col2 = st.columns(2)
+        
         with col1:
-            st.info("**Email:** ✅ Verified")
-            st.info(f"**Phone:** {st.session_state.registration_data['phone']}")
-        
-        with col2:
-            st.info(f"**Username:** {st.session_state.registration_data['username']}")
-            st.info(f"**Type:** {st.session_state.registration_data['user_type'].title()}")
-        
-        if st.button("Create Account", type="primary"):
-            data = st.session_state.registration_data
-            result = register_user(
-                data['username'], data['email'], data['phone'], 
-                data['password'], data['user_type'], 
-                data['blood_group'], data['age']
-            )
+            username = st.text_input("Username")
+            email = st.text_input("Email")
+            phone = st.text_input("Phone Number")
             
-            if result['success']:
-                st.success("Registration successful! Please login to continue.")
-                st.balloons()
-                # Reset registration state
-                st.session_state.registration_step = 1
-                st.session_state.registration_data = {}
-                st.session_state.email_verified = False
-                st.session_state.phone_verified = False
+        with col2:
+            password = st.text_input("Password", type="password")
+            confirm_password = st.text_input("Confirm Password", type="password")
+            user_type = st.selectbox("I want to:", ["donor", "receiver"])
+        
+        # Additional fields for donors
+        if user_type == "donor":
+            st.markdown("**Additional Information for Donors:**")
+            col3, col4 = st.columns(2)
+            with col3:
+                blood_group = st.selectbox("Blood Group", ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+            with col4:
+                age = st.number_input("Age", min_value=18, max_value=65, value=25)
+        else:
+            blood_group = None
+            age = None
+        
+        submitted = st.form_submit_button("Create Account")
+        
+        if submitted:
+            if username and email and phone and password and confirm_password:
+                if password != confirm_password:
+                    st.error("Passwords do not match.")
+                elif len(password) < 6:
+                    st.error("Password must be at least 6 characters long.")
+                else:
+                    result = register_user(username, email, phone, password, user_type, blood_group, age)
+                    if result['success']:
+                        st.success("🎉 Registration successful! Please login to continue.")
+                        st.balloons()
+                        
+                        # Show welcome email content
+                        st.markdown("---")
+                        st.markdown("### 📧 Welcome Email Sent")
+                        st.info(f"""
+                        **To:** {email}
+                        **Subject:** Welcome to Blood Bank Management System
+                        
+                        Dear {username},
+
+                        Welcome to the Blood Bank Management System!
+
+                        Your account has been successfully created. You can now:
+                        - Donate blood and track your donations
+                        - Request blood when needed
+                        - Find nearby blood banks
+                        - View real-time blood inventory
+
+                        Thank you for joining our life-saving community!
+
+                        Best regards,
+                        Blood Bank Management Team
+                        """)
+                    else:
+                        st.error(f"Registration failed: {result['error']}")
             else:
-                st.error(f"Registration failed: {result['error']}")
-    
-    # Reset button
-    if st.session_state.registration_step > 1:
-        if st.button("Start Over"):
-            st.session_state.registration_step = 1
-            st.session_state.registration_data = {}
-            st.session_state.email_verified = False
-            st.session_state.phone_verified = False
-            st.rerun()
+                st.error("Please fill in all required fields.")
 
 def forgot_password_form():
     st.subheader("Reset Your Password")
@@ -369,6 +292,28 @@ def forgot_password_form():
                         st.success(result['message'])
                         st.session_state.reset_email = email
                         st.session_state.reset_step = 2
+                        
+                        # Display the email content with reset link
+                        st.markdown("---")
+                        st.markdown("### 📧 Password Reset Email Sent")
+                        st.info(f"""
+                        **To:** {email}
+                        **Subject:** Password Reset Link - Blood Bank Management System
+                        
+                        Dear User,
+
+                        You have requested to reset your password for the Blood Bank Management System.
+
+                        **Reset Link:** https://bloodbank.replit.app/reset?token={result['token']}&email={email}
+
+                        **Reset Token:** {result['token']}
+
+                        This link and token will expire in 15 minutes. If you did not request this reset, please ignore this email.
+
+                        Best regards,
+                        Blood Bank Management Team
+                        """)
+                        st.markdown("---")
                         st.rerun()
                     else:
                         st.error(result['error'])

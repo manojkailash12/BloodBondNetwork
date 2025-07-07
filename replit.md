@@ -104,10 +104,10 @@ This is a comprehensive Blood Bank Management System built with Streamlit that f
 ```
 Changelog:
 - July 07, 2025. Initial setup with basic functionality
-- July 07, 2025. Added advanced authentication features:
-  * Multi-step registration with email OTP verification (SMS removed per user request)
+- July 07, 2025. Added simplified authentication features:
+  * Immediate registration with welcome email (all OTP verification removed)
   * Local email notification system showing actual email content
-  * Password reset functionality with secure tokens
+  * Password reset with secure reset links and tokens
   * Change password feature for logged-in users
   * Notification history viewing for users
   * Beautiful medical-themed background with SVG graphics

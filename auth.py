@@ -40,11 +40,7 @@ def register_user(username, email, phone, password, user_type, blood_group=None,
     if any(user['email'] == email for user in users):
         return {'success': False, 'error': 'Email already registered'}
     
-    # Check if email OTP is verified
-    if not is_otp_verified(f"email_{email}"):
-        return {'success': False, 'error': 'Email not verified'}
-    
-    # Phone verification removed - email verification only
+    # No OTP verification required during registration
     
     # Create new user
     new_user = {
@@ -56,7 +52,7 @@ def register_user(username, email, phone, password, user_type, blood_group=None,
         'registration_date': datetime.now().isoformat(),
         'blood_group': blood_group,
         'age': age,
-        'email_verified': True,
+        'email_verified': False,
         'phone_verified': False
     }
     
@@ -131,9 +127,9 @@ def initiate_password_reset(email):
     
     # Store reset token
     if store_reset_token(email, reset_token):
-        # Send reset email
+        # Send reset email with link
         send_password_reset_email(email, user['username'], reset_token)
-        return {'success': True, 'message': 'Password reset instructions sent to email'}
+        return {'success': True, 'message': 'Password reset link sent to your email', 'token': reset_token}
     
     return {'success': False, 'error': 'Failed to initiate password reset'}
 
