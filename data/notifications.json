@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "type": "email",
+    "recipient": "manojkailash1@gmail.com",
+    "subject": "Welcome to Blood Bank Management System",
+    "message": "\n    Dear Manoj272005,\n\n    Welcome to the Blood Bank Management System!\n\n    Your account has been successfully created. You can now:\n    - Donate blood and track your donations\n    - Request blood when needed\n    - Find nearby blood banks\n    - View real-time blood inventory\n\n    Thank you for joining our life-saving community!\n\n    Best regards,\n    Blood Bank Management Team\n    ",
+    "timestamp": "2025-07-07T16:07:20.470289",
+    "status": "sent"
+  }
+]

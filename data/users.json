@@ -8,5 +8,17 @@
     "registration_date": "2025-07-07T15:40:12.852225",
     "blood_group": "A+",
     "age": 21
+  },
+  {
+    "username": "Manoj272005",
+    "email": "manojkailash1@gmail.com",
+    "phone": "9019889766",
+    "password": "990ee60450cd405da5ba107f44b03ca6da9c22ccb75b82d6a5d0139460886df0",
+    "user_type": "donor",
+    "registration_date": "2025-07-07T16:07:20.468155",
+    "blood_group": "A+",
+    "age": 21,
+    "email_verified": false,
+    "phone_verified": false
   }
 ]
