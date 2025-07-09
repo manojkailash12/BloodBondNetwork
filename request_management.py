@@ -220,3 +220,19 @@ def get_requester_notifications(requester_username):
                 all_responses.append(response)
     
     return all_responses
+
+def get_pending_requests_for_donor(username):
+    # Dummy implementation: returns a sample list
+    return [
+        {
+            "id": 1,
+            "blood_group": "A+",
+            "quantity": 500,
+            "urgency": "High",
+            "recipient": "user@example.com"
+        }
+    ]
+
+def respond_to_request(request_id, donor_username, response):
+    # Dummy implementation: just print/log the response
+    print(f"Donor {donor_username} responded '{response}' to request {request_id}")

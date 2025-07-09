@@ -184,3 +184,14 @@ def find_nearby_blood_banks(user_lat, user_lng, radius_km=50):
     # Sort by distance
     nearby_banks.sort(key=lambda x: x['distance'])
     return nearby_banks
+
+
+def show_blood_bank_map(blood_banks):
+    # Returns a folium map with blood bank markers
+    m = folium.Map(location=[20.5937, 78.9629], zoom_start=5)
+    for bank in blood_banks:
+        folium.Marker(
+            [bank["lat"], bank["lng"]],
+            popup=f"{bank['name']}<br>{bank['address']}<br>{bank['contact']}"
+        ).add_to(m)
+    return m

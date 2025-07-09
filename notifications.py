@@ -224,3 +224,15 @@ def get_user_notifications(email):
     """Get notifications for a specific user"""
     notifications = load_notifications()
     return [n for n in notifications if n['recipient'] == email]
+
+import json
+import os
+
+def get_user_notifications(email):
+    # Dummy implementation: reads notifications.json if exists
+    if os.path.exists("notifications.json"):
+        with open("notifications.json", "r") as f:
+            notifications = json.load(f)
+        # Filter notifications for the user
+        return [n for n in notifications if n.get("recipient") == email]
+    return []
