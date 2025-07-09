@@ -1,4 +1,9 @@
 streamlit
 pandas
+numpy
 folium
-streamlit-folium
+plotly
+requests
+python-dateutil
+sendgrid
+twilio
